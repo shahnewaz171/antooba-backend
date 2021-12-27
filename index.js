@@ -113,7 +113,6 @@ client.connect(err => {
             res.send(admins.length > 0);
         })
     })
-
 });
 
 app.get('/', (req, res) => {
