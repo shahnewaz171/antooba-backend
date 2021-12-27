@@ -19,6 +19,8 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 client.connect(err => {
     const usersCollection = client.db(`${process.env.DB_NAME}`).collection("users");
+    const productsCollection = client.db(`${process.env.DB_NAME}`).collection("products");
+    const adminsCollection = client.db(`${process.env.DB_NAME}`).collection("admins");
 
     app.post('/signup', async (req, res) => {
         try{
@@ -61,6 +63,55 @@ client.connect(err => {
         catch (err) {
             res.status(500).send(err);
         }
+    })
+
+    app.post('/addProduct', async (req, res) => {
+        try{
+            const file = req.files.file;
+            const { title, price } = req.body;
+            const newImg = file.data;
+            const encImg = newImg.toString('base64');
+
+            const image = {
+                contentType: file.mimetype,
+                size: file.size,
+                img: Buffer.from(encImg, 'base64')
+            };
+
+            const result = await productsCollection.insertOne({ title, price, image});
+            res.status(201).send(result);
+        }
+        catch (err) {
+            res.status(500).send(err);
+        }
+    })
+
+    app.get('/products', (req, res) => {
+        productsCollection.find({})
+        .toArray( (err, documents) => {
+            res.status(200).send(documents);
+        })
+    })
+
+    //insert admin
+    app.post('/addAdmin', async(req, res) => {
+       try{
+            const { email } = req.body;
+            const result = await adminsCollection.insertOne({ email });
+            res.status(201).send(result);
+       }
+       catch (err) {
+            res.status(500).send(err);
+       }
+    })
+
+    //limited access
+    app.post('/isAdmin', (req, res) => {
+        const email = req.body.email;
+        adminsCollection.find({ email: email })
+        .toArray((err, admins) => {
+            res.send(admins.length > 0);
+        })
     })
 
 });
